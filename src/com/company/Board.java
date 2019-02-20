@@ -136,6 +136,10 @@ public class Board {
         return end;
     }
 
+    public Piece getTurn(){
+        return turn;
+    }
+
     public Piece getWinner(){
         return winner;
     }
