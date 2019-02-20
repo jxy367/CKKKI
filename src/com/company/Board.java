@@ -1,7 +1,8 @@
 package com.company;
 
 
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 
 enum Piece{
@@ -90,10 +91,7 @@ public class Board {
             }
         }
 
-        if(this.isEnd()){
-            System.out.println(this.toString());
-            throw new IllegalArgumentException("Game already complete");
-        }
+        this.isEnd();
     }
 
     @Override
@@ -128,8 +126,8 @@ public class Board {
         return sb.toString();
     }
 
-    public String getPiecesPerCol(){ /* For viewing */
-        return Arrays.toString(piecesPerCol);
+    public int[] getPiecesPerCol() {
+        return piecesPerCol;
     }
 
     public boolean getEnd(){
@@ -196,7 +194,7 @@ public class Board {
                     if(checkPass){
                         winner = state[row][col];
                         end = true;
-                        System.out.println("Right: " + row + "," + col);
+                        //System.out.println("Right: " + row + "," + col);
                         return true;
                     }
                 }
@@ -213,7 +211,7 @@ public class Board {
                     if(checkPass){
                         winner = state[row][col];
                         end = true;
-                        System.out.println("Up: " + row + "," + col);
+                        //System.out.println("Up: " + row + "," + col);
                         return true;
                     }
                 }
@@ -230,7 +228,7 @@ public class Board {
                     if(checkPass){
                         winner = state[row][col];
                         end = true;
-                        System.out.println("Left Up: " + row + "," + col);
+                        //System.out.println("Left Up: " + row + "," + col);
                         return true;
                     }
                 }
@@ -246,7 +244,7 @@ public class Board {
                     if(checkPass){
                         winner = state[row][col];
                         end = true;
-                        System.out.println("Right Up: " + row + "," + col);
+                        //System.out.println("Right Up: " + row + "," + col);
                         return true;
                     }
                 }
@@ -400,5 +398,327 @@ public class Board {
             return;
         }
 
+    }
+
+    public int[] getBoardFeatures(Piece player) {
+        /*
+        Opp Match 1 with empty spots (Active/Inactive) --> For each piece find 3 N's
+        Opp Match 2 with empty spots (Active/Inactive) --> For each piece find 2 N's and an additional piece
+        Opp Match 3 with empty spots (Active/Inactive) --> Group of 5 [!(P or N) (3 P's and 1 N)]
+        Opp Match 3 with 2 empty spots (Active/Inactive) --> Group of 5 [N P P P N]
+        self Match 1 with empty spots (Active/Inactive)
+        self Match 2 with empty spots (Active/Inactive)
+        self Match 3 with empty spot (Active/Inactive)
+        self Match 3 with 2 empty spots (Active/Inactive)
+        self Game Won [P P P P]
+         */
+
+        /*
+        "L/R" = 42
+        "U/D" = 21
+        "Diagonal1" = 18
+        "Diagonal2" = 18
+        Total = 99
+        */
+
+        Piece opponent;
+
+        if (player == Piece.O) {
+            opponent = Piece.X;
+        } else {
+            opponent = Piece.O;
+        }
+
+        int[] boardFeatures = new int[17];
+
+        HashMap<String, ArrayList<String>> featureStrings = getFeatureStrings();
+        for (String s : featureStrings.get("Active")) {
+            if (s.length() == 5) {
+                if (count(s, opponent) == 3) {
+                    boardFeatures[6] = boardFeatures[6] + 1;
+                } else {
+                    boardFeatures[14] = boardFeatures[14] + 1;
+                }
+            } else {
+                if (s.contains(opponent.name())) {
+                    int num = count(s, opponent);
+                    switch (num) {
+                        case 1:
+                            boardFeatures[0] = boardFeatures[0] + 1;
+                            break;
+
+                        case 2:
+                            boardFeatures[2] = boardFeatures[2] + 1;
+                            break;
+
+                        case 3:
+                            boardFeatures[4] = boardFeatures[4] + 1;
+                            break;
+                    }
+                } else {
+                    int num = count(s, player);
+                    switch (num) {
+                        case 1:
+                            boardFeatures[8] = boardFeatures[8] + 1;
+                            break;
+
+                        case 2:
+                            boardFeatures[10] = boardFeatures[10] + 1;
+                            break;
+
+                        case 3:
+                            boardFeatures[12] = boardFeatures[12] + 1;
+                            break;
+
+                        case 4:
+                            boardFeatures[16] = 1;
+                            break;
+                    }
+                }
+            }
+        }
+
+        for (String s : featureStrings.get("Inactive")) {
+            if (s.length() == 5) {
+                if (count(s, opponent) == 3) {
+                    boardFeatures[7] = boardFeatures[7] + 1;
+                } else {
+                    boardFeatures[15] = boardFeatures[15] + 1;
+                }
+            } else {
+                if (s.contains(opponent.name())) {
+                    int num = count(s, opponent);
+                    switch (num) {
+                        case 1:
+                            boardFeatures[1] = boardFeatures[1] + 1;
+                            break;
+
+                        case 2:
+                            boardFeatures[3] = boardFeatures[3] + 1;
+                            break;
+
+                        case 3:
+                            boardFeatures[5] = boardFeatures[5] + 1;
+                            break;
+                    }
+                } else {
+                    int num = count(s, player);
+                    switch (num) {
+                        case 1:
+                            boardFeatures[9] = boardFeatures[9] + 1;
+                            break;
+
+                        case 2:
+                            boardFeatures[11] = boardFeatures[11] + 1;
+                            break;
+
+                        case 3:
+                            boardFeatures[13] = boardFeatures[13] + 1;
+                            break;
+
+                        case 4:
+                            boardFeatures[16] = 1;
+                            break;
+                    }
+                }
+            }
+        }
+
+        return boardFeatures;
+    }
+
+    private HashMap<String, ArrayList<String>> getFeatureStrings() {
+        HashMap<String, ArrayList<String>> featureStrings = new HashMap<>();
+        ArrayList<String> activeStrings = new ArrayList<>();
+        ArrayList<String> inactiveStrings = new ArrayList<>();
+
+        for (int row = 0; row < rows; row++) {
+            for (int col = 0; col < cols; col++) {
+                boolean col_pos_4 = (col + 3 < cols);
+                boolean col_pos_5 = (col + 4 < cols);
+                boolean col_neg_4 = (col - 3 >= 0);
+                boolean col_neg_5 = (col - 4 >= 0);
+                boolean row_pos_4 = (row + 3 < rows);
+                boolean row_pos_5 = (row + 4 < rows);
+
+                //Right 4
+                boolean isActive = false;
+                StringBuilder sb = new StringBuilder();
+                if (col_pos_4) {
+                    for (int i = 0; i < 4; i++) {
+                        if (piecesPerCol[col + i] == row) {
+                            isActive = true;
+                        }
+                        sb.append(state[row][col + i]);
+                    }
+                    if (isActive) {
+                        activeStrings.add(sb.toString());
+                    } else {
+                        inactiveStrings.add(sb.toString());
+                    }
+                }
+
+                //Right 5
+                if (col_pos_5) {
+                    if (piecesPerCol[col + 4] == row) {
+                        isActive = true;
+                    }
+                    sb.append(state[row][col + 4]);
+                    if (isActive) {
+                        activeStrings.add(sb.toString());
+                    } else {
+                        inactiveStrings.add(sb.toString());
+                    }
+                }
+
+                //Up 4
+                isActive = false;
+                sb = new StringBuilder();
+                if (row_pos_4) {
+                    for (int i = 0; i < 4; i++) {
+                        if (piecesPerCol[col] == row + i) {
+                            isActive = true;
+                        }
+                        sb.append(state[row + i][col]);
+                    }
+                    if (isActive) {
+                        activeStrings.add(sb.toString());
+                    } else {
+                        inactiveStrings.add(sb.toString());
+                    }
+                }
+
+                //Up 5
+                if (row_pos_5) {
+                    if (piecesPerCol[col] == row + 4) {
+                        isActive = true;
+                    }
+                    sb.append(state[row + 4][col]);
+                    if (isActive) {
+                        activeStrings.add(sb.toString());
+                    } else {
+                        inactiveStrings.add(sb.toString());
+                    }
+                }
+
+                //Right-Up 4
+                isActive = false;
+                sb = new StringBuilder();
+                if (col_pos_4 && row_pos_4) {
+                    for (int i = 0; i < 4; i++) {
+                        if (piecesPerCol[col + i] == row + i) {
+                            isActive = true;
+                        }
+                        sb.append(state[row + i][col + i]);
+                    }
+                    if (isActive) {
+                        activeStrings.add(sb.toString());
+                    } else {
+                        inactiveStrings.add(sb.toString());
+                    }
+                }
+
+                //Right-Up 5
+                if (col_pos_5 && row_pos_5) {
+                    if (piecesPerCol[col + 4] == row + 4) {
+                        isActive = true;
+                    }
+                    sb.append(state[row + 4][col + 4]);
+                    if (isActive) {
+                        activeStrings.add(sb.toString());
+                    } else {
+                        inactiveStrings.add(sb.toString());
+                    }
+                }
+
+                //Left-Up 4
+                isActive = false;
+                sb = new StringBuilder();
+                if (col_neg_4 && row_pos_4) {
+                    for (int i = 0; i < 4; i++) {
+                        if (piecesPerCol[col - i] == row - i) {
+                            isActive = true;
+                        }
+                        sb.append(state[row + i][col - i]);
+                    }
+                    if (isActive) {
+                        activeStrings.add(sb.toString());
+                    } else {
+                        inactiveStrings.add(sb.toString());
+                    }
+                }
+
+                //Left-Up 5
+                if (col_neg_5 && row_pos_5) {
+                    if (piecesPerCol[col - 4] == row + 4) {
+                        isActive = true;
+                    }
+                    sb.append(state[row + 4][col - 4]);
+                    if (isActive) {
+                        activeStrings.add(sb.toString());
+                    } else {
+                        inactiveStrings.add(sb.toString());
+                    }
+                }
+
+            }
+        }
+
+        ArrayList<String> inactiveFeatureStrings = collectFeatureStrings(inactiveStrings);
+        ArrayList<String> activeFeatureStrings = collectFeatureStrings(activeStrings);
+
+        featureStrings.put("Inactive", inactiveFeatureStrings);
+        featureStrings.put("Active", activeFeatureStrings);
+
+        return featureStrings;
+    }
+
+    private ArrayList<String> collectFeatureStrings(ArrayList<String> allStrings) {
+        ArrayList<String> featureStrings = new ArrayList<>();
+        for (String s : allStrings) {
+            if (s.length() == 4) {
+                if (s.contains(Piece.O.name()) ^ s.contains(Piece.X.name())) {
+                    featureStrings.add(s);
+                }
+            }
+            if (s.length() == 5) {
+                int o_inner_count = 0;
+                int x_inner_count = 0;
+                int o_count = 0;
+                int x_count = 0;
+                for (int i = 0; i < s.length(); i++) {
+                    if (s.charAt(i) == 'O') {
+                        o_count++;
+                        if (i > 0 && i < s.length() - 1) {
+                            o_inner_count++;
+                        }
+                    }
+                    if (s.charAt(i) == 'X') {
+                        if (i > 0 && i < s.length() - 1) {
+                            x_inner_count++;
+                        }
+                        x_count++;
+                    }
+                }
+
+                /* Must have a match 3, Inner count must not contain both O and X, Outer character could prevent, Must have O or X in string */
+                if ((x_inner_count == 3 && o_count == 0) || (o_inner_count == 3 && x_count == 0)) {
+                    featureStrings.add(s);
+                }
+            }
+        }
+        return featureStrings;
+        //return new ArrayList<>();
+    }
+
+    private int count(String s, Piece p) {
+        int num = 0;
+        for (int i = 0; i < s.length(); i++) {
+            if (s.charAt(i) == p.name().charAt(0)) {
+                num++;
+            }
+        }
+        //System.out.println("String: " + s + ", Character: " + p.name().charAt(0) + ", Count: " + num);
+        return num;
     }
 }

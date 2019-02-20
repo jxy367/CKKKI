@@ -14,6 +14,9 @@ public class HumanAgent implements Agent{
         return col_decision;
     }
 
+    public void onGameFinished(String[] board_states, Piece ownPiece, Result result) {
+    }
+
     private void showGame(){
         System.out.println(board);
     }
