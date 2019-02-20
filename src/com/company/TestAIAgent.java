@@ -50,7 +50,7 @@ public class TestAIAgent implements AI_Agent {
         if (sum != 11) {
             sum = sum - weights[weights.length - 1];
             for (int i = 0; i < weights.length; i++) {
-                weights[i] = weights[i] / sum;
+                weights[i] = weights[i] / (sum / 10);
             }
             weights[weights.length - 1] = 10;
         }
@@ -78,7 +78,7 @@ public class TestAIAgent implements AI_Agent {
             Board test_board = new Board(board_state);
             if (test_board.place(col)) {
                 String test_board_state = test_board.getState();
-                double test_next_board_value = -1 * calculateBoardValue(test_board_state, current_board.getTurn());
+                double test_next_board_value = calculateBoardValue(test_board_state, current_board.getTurn());
                 //System.out.println(test_next_board_value);
                 if (test_next_board_value > best_next_board_value) {
                     best_col = col;
