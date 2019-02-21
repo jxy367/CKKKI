@@ -100,7 +100,11 @@ public class Board {
         for(int row = rows-1; row >= 0; row--){
             sb.append("[ ");
             for(int col = 0; col < cols; col++){
-                sb.append(state[row][col]);
+                if (state[row][col] == Piece.N) {
+                    sb.append("_");
+                } else {
+                    sb.append(state[row][col]);
+                }
                 sb.append(" ");
             }
             sb.append("]\n");
@@ -421,110 +425,46 @@ public class Board {
         Total = 99
         */
 
-        Piece opponent;
-
-        if (player == Piece.O) {
-            opponent = Piece.X;
-        } else {
-            opponent = Piece.O;
-        }
-
         int[] boardFeatures = new int[17];
 
         HashMap<String, ArrayList<String>> featureStrings = getFeatureStrings();
+        //System.out.println(featureStrings.get("Active"));
         for (String s : featureStrings.get("Active")) {
-            if (s.length() == 5) {
-                if (count(s, opponent) == 3) {
-                    boardFeatures[6] = boardFeatures[6] + 1;
-                } else {
-                    boardFeatures[14] = boardFeatures[14] + 1;
-                }
-            } else {
-                if (s.contains(opponent.name())) {
-                    int num = count(s, opponent);
-                    switch (num) {
-                        case 1:
-                            boardFeatures[0] = boardFeatures[0] + 1;
-                            break;
-
-                        case 2:
-                            boardFeatures[2] = boardFeatures[2] + 1;
-                            break;
-
-                        case 3:
-                            boardFeatures[4] = boardFeatures[4] + 1;
-                            break;
-                    }
-                } else {
-                    int num = count(s, player);
-                    switch (num) {
-                        case 1:
-                            boardFeatures[8] = boardFeatures[8] + 1;
-                            break;
-
-                        case 2:
-                            boardFeatures[10] = boardFeatures[10] + 1;
-                            break;
-
-                        case 3:
-                            boardFeatures[12] = boardFeatures[12] + 1;
-                            break;
-
-                        case 4:
-                            boardFeatures[16] = 1;
-                            break;
-                    }
-                }
-            }
+            int s_index = calculateFeatureIndex(true, s, player);
+            boardFeatures[s_index] = boardFeatures[s_index] + 1;
         }
 
+        //System.out.println(featureStrings.get("Inactive"));
         for (String s : featureStrings.get("Inactive")) {
-            if (s.length() == 5) {
-                if (count(s, opponent) == 3) {
-                    boardFeatures[7] = boardFeatures[7] + 1;
-                } else {
-                    boardFeatures[15] = boardFeatures[15] + 1;
-                }
-            } else {
-                if (s.contains(opponent.name())) {
-                    int num = count(s, opponent);
-                    switch (num) {
-                        case 1:
-                            boardFeatures[1] = boardFeatures[1] + 1;
-                            break;
+            int s_index = calculateFeatureIndex(false, s, player);
+            boardFeatures[s_index] = boardFeatures[s_index] + 1;
+        }
 
-                        case 2:
-                            boardFeatures[3] = boardFeatures[3] + 1;
-                            break;
-
-                        case 3:
-                            boardFeatures[5] = boardFeatures[5] + 1;
-                            break;
-                    }
-                } else {
-                    int num = count(s, player);
-                    switch (num) {
-                        case 1:
-                            boardFeatures[9] = boardFeatures[9] + 1;
-                            break;
-
-                        case 2:
-                            boardFeatures[11] = boardFeatures[11] + 1;
-                            break;
-
-                        case 3:
-                            boardFeatures[13] = boardFeatures[13] + 1;
-                            break;
-
-                        case 4:
-                            boardFeatures[16] = 1;
-                            break;
-                    }
-                }
-            }
+        if (boardFeatures[16] > 0) {
+            boardFeatures[16] = 1;
         }
 
         return boardFeatures;
+    }
+
+    private int calculateFeatureIndex(boolean isActive, String s, Piece player) {
+        int index = 0;
+        Piece owner = player.equals(Piece.O) ? Piece.X : Piece.O; //Set owner to opponent
+        if (!isActive) {
+            index += 1;
+        }
+        if (s.contains(player.name())) {
+            index += 8;
+            owner = player; //Correctly set owner
+        }
+
+        if (s.length() == 5) {
+            index += 6;
+        } else { //s.length() == 4
+            int num = count(s, owner);
+            index += 2 * (num - 1);
+        }
+        return index;
     }
 
     private HashMap<String, ArrayList<String>> getFeatureStrings() {
@@ -534,133 +474,12 @@ public class Board {
 
         for (int row = 0; row < rows; row++) {
             for (int col = 0; col < cols; col++) {
-                boolean col_pos_4 = (col + 3 < cols);
-                boolean col_pos_5 = (col + 4 < cols);
-                boolean col_neg_4 = (col - 3 >= 0);
-                boolean col_neg_5 = (col - 4 >= 0);
-                boolean row_pos_4 = (row + 3 < rows);
-                boolean row_pos_5 = (row + 4 < rows);
-
-                //Right 4
-                boolean isActive = false;
-                StringBuilder sb = new StringBuilder();
-                if (col_pos_4) {
-                    for (int i = 0; i < 4; i++) {
-                        if (piecesPerCol[col + i] == row) {
-                            isActive = true;
-                        }
-                        sb.append(state[row][col + i]);
-                    }
-                    if (isActive) {
-                        activeStrings.add(sb.toString());
-                    } else {
-                        inactiveStrings.add(sb.toString());
-                    }
-                }
-
-                //Right 5
-                if (col_pos_5) {
-                    if (piecesPerCol[col + 4] == row) {
-                        isActive = true;
-                    }
-                    sb.append(state[row][col + 4]);
-                    if (isActive) {
-                        activeStrings.add(sb.toString());
-                    } else {
-                        inactiveStrings.add(sb.toString());
-                    }
-                }
-
-                //Up 4
-                isActive = false;
-                sb = new StringBuilder();
-                if (row_pos_4) {
-                    for (int i = 0; i < 4; i++) {
-                        if (piecesPerCol[col] == row + i) {
-                            isActive = true;
-                        }
-                        sb.append(state[row + i][col]);
-                    }
-                    if (isActive) {
-                        activeStrings.add(sb.toString());
-                    } else {
-                        inactiveStrings.add(sb.toString());
-                    }
-                }
-
-                //Up 5
-                if (row_pos_5) {
-                    if (piecesPerCol[col] == row + 4) {
-                        isActive = true;
-                    }
-                    sb.append(state[row + 4][col]);
-                    if (isActive) {
-                        activeStrings.add(sb.toString());
-                    } else {
-                        inactiveStrings.add(sb.toString());
-                    }
-                }
-
-                //Right-Up 4
-                isActive = false;
-                sb = new StringBuilder();
-                if (col_pos_4 && row_pos_4) {
-                    for (int i = 0; i < 4; i++) {
-                        if (piecesPerCol[col + i] == row + i) {
-                            isActive = true;
-                        }
-                        sb.append(state[row + i][col + i]);
-                    }
-                    if (isActive) {
-                        activeStrings.add(sb.toString());
-                    } else {
-                        inactiveStrings.add(sb.toString());
-                    }
-                }
-
-                //Right-Up 5
-                if (col_pos_5 && row_pos_5) {
-                    if (piecesPerCol[col + 4] == row + 4) {
-                        isActive = true;
-                    }
-                    sb.append(state[row + 4][col + 4]);
-                    if (isActive) {
-                        activeStrings.add(sb.toString());
-                    } else {
-                        inactiveStrings.add(sb.toString());
-                    }
-                }
-
-                //Left-Up 4
-                isActive = false;
-                sb = new StringBuilder();
-                if (col_neg_4 && row_pos_4) {
-                    for (int i = 0; i < 4; i++) {
-                        if (piecesPerCol[col - i] == row - i) {
-                            isActive = true;
-                        }
-                        sb.append(state[row + i][col - i]);
-                    }
-                    if (isActive) {
-                        activeStrings.add(sb.toString());
-                    } else {
-                        inactiveStrings.add(sb.toString());
-                    }
-                }
-
-                //Left-Up 5
-                if (col_neg_5 && row_pos_5) {
-                    if (piecesPerCol[col - 4] == row + 4) {
-                        isActive = true;
-                    }
-                    sb.append(state[row + 4][col - 4]);
-                    if (isActive) {
-                        activeStrings.add(sb.toString());
-                    } else {
-                        inactiveStrings.add(sb.toString());
-                    }
-                }
-
+                HashMap<String, ArrayList<String>> pointFeatures = pointFeatureStrings(col, row);
+                //System.out.println(col + "," + row);
+                //System.out.println(pointFeatures.get("Active"));
+                //System.out.println(pointFeatures.get("Inactive"));
+                activeStrings.addAll(pointFeatures.get("Active"));
+                inactiveStrings.addAll(pointFeatures.get("Inactive"));
             }
         }
 
@@ -673,22 +492,109 @@ public class Board {
         return featureStrings;
     }
 
+    private HashMap<String, ArrayList<String>> pointFeatureStrings(int col, int row) {
+        HashMap<String, ArrayList<String>> pointFeatures = new HashMap<>();
+        ArrayList<String> activePointStrings = new ArrayList<>();
+        ArrayList<String> inactivePointStrings = new ArrayList<>();
+
+        //Right
+        HashMap<String, ArrayList<String>> rightPointFeatures = pointDirectionFeatureStrings(col, row, 1, 0);
+        activePointStrings.addAll(rightPointFeatures.get("Active"));
+        inactivePointStrings.addAll(rightPointFeatures.get("Inactive"));
+
+        //Up
+        HashMap<String, ArrayList<String>> upPointFeatures = pointDirectionFeatureStrings(col, row, 0, 1);
+        activePointStrings.addAll(upPointFeatures.get("Active"));
+        inactivePointStrings.addAll(upPointFeatures.get("Inactive"));
+
+        //Left-Up
+        HashMap<String, ArrayList<String>> luPointFeatures = pointDirectionFeatureStrings(col, row, -1, 1);
+        activePointStrings.addAll(luPointFeatures.get("Active"));
+        inactivePointStrings.addAll(luPointFeatures.get("Inactive"));
+
+        //Right-Up
+        HashMap<String, ArrayList<String>> lrPointFeatures = pointDirectionFeatureStrings(col, row, 1, 1);
+        activePointStrings.addAll(lrPointFeatures.get("Active"));
+        inactivePointStrings.addAll(lrPointFeatures.get("Inactive"));
+
+        pointFeatures.put("Active", activePointStrings);
+        pointFeatures.put("Inactive", inactivePointStrings);
+
+        return pointFeatures;
+    }
+
+    private HashMap<String, ArrayList<String>> pointDirectionFeatureStrings(int col, int row, int lr, int ud) {
+        //System.out.println(col + "," + row + "," + lr + "," + ud);
+        ArrayList<String> activeStrings = new ArrayList<>();
+        ArrayList<String> inactiveStrings = new ArrayList<>();
+        HashMap<String, ArrayList<String>> outputHashMap = new HashMap<>();
+
+        boolean col_4 = ((col + 3 * lr >= 0) && (col + 3 * lr < cols));
+        boolean col_5 = ((col + 4 * lr >= 0) && (col + 4 * lr < cols));
+        boolean row_4 = ((row + 3 * ud >= 0) && (row + 3 * ud < rows));
+        boolean row_5 = ((row + 4 * ud >= 0) && (row + 4 * ud < rows));
+        //System.out.println(col_4 + "," + col_5 + "," + row_4 + "," + row_5);
+
+        boolean check_4 = col_4 && row_4;
+        boolean check_5 = col_5 && row_5;
+        //System.out.println(check_4 + "," + check_5);
+
+        boolean isActive = false;
+        boolean hasO = false;
+        boolean hasX = false;
+        StringBuilder sb = new StringBuilder();
+        if (check_4) {
+            for (int i = 0; i < 5; i++) {
+                if (check_5 || i < 4) {
+                    if (piecesPerCol[col + lr * i] == row + ud * i) {
+                        isActive = true;
+                    }
+                    if (state[row + ud * i][col + lr * i] == Piece.O) {
+                        hasO = true;
+                    }
+                    if (state[row + ud * i][col + lr * i] == Piece.X) {
+                        hasX = true;
+                    }
+                    if (hasO && hasX) {
+                        break;
+                    } else {
+                        sb.append(state[row + ud * i][col + lr * i]);
+                        if (i >= 3 && (hasO || hasX)) {
+                            if (isActive) {
+                                activeStrings.add(sb.toString());
+                            } else {
+                                inactiveStrings.add(sb.toString());
+                            }
+                        }
+                    }
+                }
+            }
+
+        }
+        //System.out.println(activeStrings);
+        //System.out.println(inactiveStrings);
+        outputHashMap.put("Active", activeStrings);
+        outputHashMap.put("Inactive", inactiveStrings);
+
+        return outputHashMap;
+
+    }
+
     private ArrayList<String> collectFeatureStrings(ArrayList<String> allStrings) {
         ArrayList<String> featureStrings = new ArrayList<>();
         for (String s : allStrings) {
             if (s.length() == 4) {
-                if (s.contains(Piece.O.name()) ^ s.contains(Piece.X.name())) {
+                /*if (s.contains(Piece.O.name()) ^ s.contains(Piece.X.name())) {
                     featureStrings.add(s);
                 }
+                */
+                featureStrings.add(s);
             }
             if (s.length() == 5) {
                 int o_inner_count = 0;
                 int x_inner_count = 0;
-                int o_count = 0;
-                int x_count = 0;
                 for (int i = 0; i < s.length(); i++) {
                     if (s.charAt(i) == 'O') {
-                        o_count++;
                         if (i > 0 && i < s.length() - 1) {
                             o_inner_count++;
                         }
@@ -697,18 +603,17 @@ public class Board {
                         if (i > 0 && i < s.length() - 1) {
                             x_inner_count++;
                         }
-                        x_count++;
                     }
                 }
 
                 /* Must have a match 3, Inner count must not contain both O and X, Outer character could prevent, Must have O or X in string */
-                if ((x_inner_count == 3 && o_count == 0) || (o_inner_count == 3 && x_count == 0)) {
+                if (x_inner_count == 3 || o_inner_count == 3) {
                     featureStrings.add(s);
                 }
             }
         }
         return featureStrings;
-        //return new ArrayList<>();
+
     }
 
     private int count(String s, Piece p) {
